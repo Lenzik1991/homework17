@@ -1,11 +1,11 @@
 # app.py
 
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 
 from models import *
-from schemas import movies_schema
+from schemas import movie_schema, movies_schema, director_schema, directors_schema, genre_schema, genres_schema
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -16,6 +16,8 @@ db = SQLAlchemy(app)
 
 api = Api(app)
 movie_ns = api.namespace('movies')
+director_ns = api.namespace('directors')
+genre_ns = api.namespace('genres')
 
 
 @movie_ns.route("/")
@@ -53,7 +55,7 @@ class MovieView(Resource):
             Genre.name.label('genre'), Director.name.label('director')).join(Genre).join(Director).filter(
             Movie.id == movie_id).first()
         if movie:
-            return movies_schema.dump(movie)
+            return movie_schema.dump(movie)
         return "Нет такого фильма", 404
 
     def patch(self, movie_id: int):
@@ -104,6 +106,42 @@ class MovieView(Resource):
         db.session.delete(movie)
         db.session.commit()
         return f"Oбъект c id {movie_id} удален", 204
+
+
+@director_ns.route("/")
+class DirectorView(Resource):
+    def get(self):
+        all_directors = db.session.query(Director).all()
+        return directors_schema.dump(all_directors), 200
+
+
+@director_ns.route("/<int:director_id>")
+class DirectorView(Resource):
+
+    def get(self, director_id: int):
+        try:
+            director = db.session.query(Director).filter(Director.id == director_id).one()
+            return director_schema.dump(director), 200
+        except Exception as e:
+            return str(e), 404
+
+
+@genre_ns.route("/")
+class GenreView(Resource):
+    def get(self):
+        all_genres = db.session.query(Genre).all()
+        return genres_schema.dump(all_genres), 200
+
+
+@genre_ns.route("/<int:genre_id>")
+class GenreView(Resource):
+
+    def get(self, genre_id: int):
+        try:
+            genre = db.session.query(Genre).filter(Genre.id == genre_id).one()
+            return genre_schema.dump(genre), 200
+        except Exception as e:
+            return str(e), 404
 
 
 if __name__ == '__main__':
